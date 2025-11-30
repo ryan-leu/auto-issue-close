@@ -1,0 +1,36 @@
+name: Auto Close Issues
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  close-issue:
+    if: contains(github.event.label.name, 'completed') || contains(github.event.label.name, 'wontfix')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Close issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { issue } = context.payload;
+            console.log(`Closing issue #${issue.number} due to label: ${context.payload.label.name}`);
+            
+            // Add a comment before closing
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: `This issue is being automatically closed because it was labeled with \`${context.payload.label.name}\`.`
+            });
+            
+            // Close the issue
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              state: 'closed'
+            });
